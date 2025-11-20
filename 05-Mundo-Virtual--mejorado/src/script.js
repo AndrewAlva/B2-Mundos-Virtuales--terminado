@@ -9,7 +9,7 @@ import * as CANNON from 'cannon-es'
  * Base
  */
 // Debug
-const gui = new GUI()
+// const gui = new GUI()
 
 // Canvas
 const canvas = document.querySelector('canvas.webgl')
@@ -171,7 +171,7 @@ groundBody.quaternion.setFromEuler(-Math.PI / 2, 0, 0) // make it face up
 groundBody.position.set(0, 0, 0) // m
 world.addBody(groundBody)
 
-const obstacleSize = 2
+const obstacleSize = 1
 const obstacleBody = new CANNON.Body({
     type: CANNON.Body.STATIC,
     shape: new CANNON.Box(new CANNON.Vec3(obstacleSize, obstacleSize, obstacleSize)),
@@ -280,6 +280,7 @@ const clock = new THREE.Clock()
 let previousTime = 0
 const transitionSpeed = 5 // Speed of interpolation (higher = faster transition)
 const rotationSpeed = 16 // Speed of rotation interpolation (higher = faster rotation)
+const maxCameraDistance = 7 // Maximum horizontal distance between player and camera
 
 const tick = () =>
 {
@@ -370,6 +371,9 @@ const tick = () =>
         movementVector.multiplyScalar(playerMovement.speed)
         playerBody.position.x += movementVector.x
         playerBody.position.z += movementVector.z
+
+        controls.object.position.x += movementVector.x
+        controls.object.position.z += movementVector.z
     }
     
     if (playerMovement.jump) {
@@ -389,7 +393,22 @@ const tick = () =>
         playerMesh.quaternion.copy(playerBody.quaternion)
     }
 
+    controls.target.copy(playerBody.position);
 
+    // Always enforce maximum camera distance from player (even when not moving)
+    const cameraToPlayer = new THREE.Vector3(
+        controls.object.position.x - playerBody.position.x,
+        0, // Only check horizontal distance
+        controls.object.position.z - playerBody.position.z
+    )
+    const horizontalDistance = cameraToPlayer.length()
+    
+    if (horizontalDistance > maxCameraDistance) {
+        // Clamp camera position to maximum distance
+        cameraToPlayer.normalize().multiplyScalar(maxCameraDistance)
+        controls.object.position.x = playerBody.position.x + cameraToPlayer.x
+        controls.object.position.z = playerBody.position.z + cameraToPlayer.z
+    }
 
     // Update controls
     controls.update()
