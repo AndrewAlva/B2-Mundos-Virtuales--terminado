@@ -40,7 +40,6 @@ gltfLoader.load(
         fox = gltf.scene
         fox.scale.set(0.025, 0.025, 0.025)
         fox.position.y = -playerHeight;
-        fox.rotation.y = Math.PI;
         foxPlayer.add(fox)
 
         // Animation
@@ -192,7 +191,7 @@ scene.add(obstacleMesh)
 
 // Player physics
 const playerWidth = 0.3;
-const playerHeight = 1;
+const playerHeight = 0.78;
 const playerDepth = 1.5;
 const boxShape = new CANNON.Box(new CANNON.Vec3(playerWidth, playerHeight, playerDepth));
 const playerBody = new CANNON.Body({ mass: 999, shape: boxShape })
@@ -200,6 +199,12 @@ playerBody.position.set(0, playerHeight, 0) // m
 world.addBody(playerBody)
 
 // Player mesh is the Fox
+const playerMesh = new THREE.Mesh(
+    new THREE.BoxGeometry(playerWidth * 2, playerHeight * 2, playerDepth * 2),
+    new THREE.MeshBasicMaterial({ color: 0x00ff00 })
+)
+playerMesh.position.copy(playerBody.position)
+// scene.add(playerMesh)
 
 
 
@@ -220,11 +225,9 @@ window.addEventListener('keydown', (event) => {
     switch (event.key) {
         case 'w':
             playerMovement.forward = true
-            actionRun.timeScale = 1;
             break
         case 's':
             playerMovement.backward = true
-            actionRun.timeScale = -1;
             break
         case 'a':
             playerMovement.left = true
@@ -265,6 +268,7 @@ window.addEventListener('keyup', (event) => {
 const clock = new THREE.Clock()
 let previousTime = 0
 const transitionSpeed = 5 // Speed of interpolation (higher = faster transition)
+const rotationSpeed = 16 // Speed of rotation interpolation (higher = faster rotation)
 
 const tick = () =>
 {
@@ -326,7 +330,33 @@ const tick = () =>
     }
     
     if (movementVector.length() > 0) {
-        movementVector.normalize().multiplyScalar(playerMovement.speed)
+        movementVector.normalize()
+        
+        // Calculate target rotation to face movement direction
+        // Calculate angle from movement direction (in XZ plane)
+        const targetAngle = Math.atan2(movementVector.x, movementVector.z)
+        
+        // Use THREE.js quaternions for easier interpolation
+        const currentQuat = new THREE.Quaternion()
+        currentQuat.set(
+            playerBody.quaternion.x,
+            playerBody.quaternion.y,
+            playerBody.quaternion.z,
+            playerBody.quaternion.w
+        )
+        
+        const targetQuat = new THREE.Quaternion()
+        targetQuat.setFromAxisAngle(new THREE.Vector3(0, 1, 0), targetAngle)
+        
+        // Smoothly interpolate current quaternion towards target
+        const lerpFactor = 1 - Math.exp(-rotationSpeed * deltaTime)
+        currentQuat.slerp(targetQuat, lerpFactor)
+        
+        // Apply back to CANNON quaternion
+        playerBody.quaternion.set(currentQuat.x, currentQuat.y, currentQuat.z, currentQuat.w)
+        
+        // Apply movement
+        movementVector.multiplyScalar(playerMovement.speed)
         playerBody.position.x += movementVector.x
         playerBody.position.z += movementVector.z
     }
@@ -343,6 +373,9 @@ const tick = () =>
     if (playerBody && fox && foxPlayer) {
         foxPlayer.position.copy(playerBody.position)
         foxPlayer.quaternion.copy(playerBody.quaternion)
+
+        playerMesh.position.copy(playerBody.position)
+        playerMesh.quaternion.copy(playerBody.quaternion)
     }
 
 
