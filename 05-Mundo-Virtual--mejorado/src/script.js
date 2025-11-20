@@ -89,14 +89,22 @@ scene.add(ambientLight)
 
 const directionalLight = new THREE.DirectionalLight(0xffffff, 1.8)
 directionalLight.castShadow = true
-directionalLight.shadow.mapSize.set(1024 * 4, 1024 * 4)
-directionalLight.shadow.camera.far = 60
-directionalLight.shadow.camera.left = - 60
-directionalLight.shadow.camera.top = 60
-directionalLight.shadow.camera.right = 60
-directionalLight.shadow.camera.bottom = - 60
-directionalLight.position.set(- 5, 5, 0)
+directionalLight.shadow.mapSize.set(1024 * 2, 1024 * 2)
+directionalLight.shadow.camera.far = 40
+directionalLight.shadow.camera.left = - 40
+directionalLight.shadow.camera.top = 40
+directionalLight.shadow.camera.right = 40
+directionalLight.shadow.camera.bottom = - 40
+directionalLight.position.set(-5, 5, -20)
 scene.add(directionalLight)
+
+// Mesh like a sun to visualize directional light.
+const sun = new THREE.Mesh(
+    new THREE.SphereGeometry(1, 32, 32),
+    new THREE.MeshBasicMaterial({ color: 0xffffff })
+)
+sun.position.copy(directionalLight.position)
+scene.add(sun)
 
 /**
  * Sizes
@@ -155,10 +163,10 @@ const world = new CANNON.World({
 // Dynamic Body
 const radius = 0.5 // m
 const sphereBody = new CANNON.Body({
-    mass: 500, // kg
+    mass: 5, // kg
     shape: new CANNON.Sphere(radius),
 });
-sphereBody.position.set(0, 4, 0) // m
+sphereBody.position.set(0, 4, -1.8) // m
 world.addBody(sphereBody)
 
 
