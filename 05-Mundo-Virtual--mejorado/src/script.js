@@ -42,6 +42,13 @@ gltfLoader.load(
         fox.position.y = -playerHeight;
         foxPlayer.add(fox)
 
+        fox.traverse((child) => {
+            if (child.isMesh) {
+                child.castShadow = true;
+                child.receiveShadow = true;
+            }
+        });
+
         // Animation
         mixer = new THREE.AnimationMixer(fox)
         
@@ -146,9 +153,9 @@ const world = new CANNON.World({
 });
 
 // Dynamic Body
-const radius = 1 // m
+const radius = 0.5 // m
 const sphereBody = new CANNON.Body({
-    mass: 5, // kg
+    mass: 500, // kg
     shape: new CANNON.Sphere(radius),
 });
 sphereBody.position.set(0, 4, 0) // m
@@ -164,26 +171,30 @@ groundBody.quaternion.setFromEuler(-Math.PI / 2, 0, 0) // make it face up
 groundBody.position.set(0, 0, 0) // m
 world.addBody(groundBody)
 
-const obstacleSize = 1
+const obstacleSize = 2
 const obstacleBody = new CANNON.Body({
     type: CANNON.Body.STATIC,
     shape: new CANNON.Box(new CANNON.Vec3(obstacleSize, obstacleSize, obstacleSize)),
 });
-obstacleBody.position.set(-3, 1, 0) // m
+obstacleBody.position.set(-obstacleSize * 2, obstacleSize, 0) // m
 world.addBody(obstacleBody)
 
 
 ///// Three.JS objects
 const sphereMesh = new THREE.Mesh(
     new THREE.SphereGeometry(radius),
-    new THREE.MeshNormalMaterial()
-)
+    new THREE.MeshStandardMaterial({metalness: 0.995, roughness: 0.5})
+);
+sphereMesh.castShadow = true;
+sphereMesh.receiveShadow = true;
 scene.add(sphereMesh);
 
 const obstacleMesh = new THREE.Mesh(
     new THREE.BoxGeometry(obstacleSize * 2, obstacleSize * 2, obstacleSize * 2),
-    new THREE.MeshBasicMaterial({ color: 0xdddddd })
-)
+    new THREE.MeshStandardMaterial({metalness: 0.995, roughness: 0.5})
+);
+obstacleMesh.castShadow = true;
+obstacleMesh.receiveShadow = true;
 obstacleMesh.position.copy(obstacleBody.position)
 scene.add(obstacleMesh)
 
