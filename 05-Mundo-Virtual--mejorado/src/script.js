@@ -70,7 +70,7 @@ gltfLoader.load(
  * Floor
  */
 const floor = new THREE.Mesh(
-    new THREE.PlaneGeometry(10, 10),
+    new THREE.PlaneGeometry(30, 30),
     new THREE.MeshStandardMaterial({
         color: '#444444',
         metalness: 0,
@@ -89,12 +89,12 @@ scene.add(ambientLight)
 
 const directionalLight = new THREE.DirectionalLight(0xffffff, 1.8)
 directionalLight.castShadow = true
-directionalLight.shadow.mapSize.set(1024, 1024)
-directionalLight.shadow.camera.far = 15
-directionalLight.shadow.camera.left = - 7
-directionalLight.shadow.camera.top = 7
-directionalLight.shadow.camera.right = 7
-directionalLight.shadow.camera.bottom = - 7
+directionalLight.shadow.mapSize.set(1024 * 4, 1024 * 4)
+directionalLight.shadow.camera.far = 60
+directionalLight.shadow.camera.left = - 60
+directionalLight.shadow.camera.top = 60
+directionalLight.shadow.camera.right = 60
+directionalLight.shadow.camera.bottom = - 60
 directionalLight.position.set(- 5, 5, 0)
 scene.add(directionalLight)
 
@@ -198,15 +198,104 @@ obstacleMesh.receiveShadow = true;
 obstacleMesh.position.copy(obstacleBody.position)
 scene.add(obstacleMesh)
 
+/**
+ * Trees
+ */
+const treeCount = 15
+const treeSpawnRadius = 30 // meters
 
+// Tree materials
+const trunkMaterial = new THREE.MeshStandardMaterial({ 
+    color: 0x504c49, // Brown
+    metalness: 0.95,
+    roughness: 0.5
+})
+trunkMaterial.castShadow = true
+trunkMaterial.receiveShadow = true
+
+const foliageMaterial = new THREE.MeshStandardMaterial({ 
+    color: 0x596859, // Dark green
+    metalness: 0.95,
+    roughness: 0.5
+})
+foliageMaterial.castShadow = true
+foliageMaterial.receiveShadow = true
+
+// Function to create a tree
+const createTree = (x, z) => {
+    const treeGroup = new THREE.Group()
+    
+    // Trunk (cylinder)
+    const trunkHeight = 3 + Math.random() * 3 // 3-6 meters
+    const trunkRadius = 0.2 + Math.random() * 0.5 // 0.2-0.75 meters
+    const trunkGeometry = new THREE.CylinderGeometry(trunkRadius, trunkRadius * 1.2, trunkHeight, 8)
+    const trunkMesh = new THREE.Mesh(trunkGeometry, trunkMaterial)
+    trunkMesh.position.y = trunkHeight / 2
+    trunkMesh.castShadow = true
+    trunkMesh.receiveShadow = true
+    treeGroup.add(trunkMesh)
+    
+    // Foliage (cone)
+    const foliageHeight = 2 + Math.random() * 1 // 2-3 meters
+    const foliageRadius = trunkRadius + 0.5 + Math.random() * 1 // trunk radius - 1.5 meters
+    const foliageGeometry = new THREE.ConeGeometry(foliageRadius, foliageHeight, 8)
+    const foliageMesh = new THREE.Mesh(foliageGeometry, foliageMaterial)
+    foliageMesh.position.y = trunkHeight + foliageHeight / 2
+    foliageMesh.castShadow = true
+    foliageMesh.receiveShadow = true
+    treeGroup.add(foliageMesh)
+    
+    // Position the tree
+    treeGroup.position.set(x, 0, z)
+    
+    // Physics body for the tree (using box shape for collision)
+    const trunkWidth = trunkRadius * 2
+    const treeBody = new CANNON.Body({
+        type: CANNON.Body.STATIC,
+        shape: new CANNON.Box(new CANNON.Vec3(trunkWidth, trunkHeight / 2, trunkWidth))
+    })
+    treeBody.position.set(x, trunkHeight / 2, z)
+    world.addBody(treeBody)
+    
+    return { treeGroup, treeBody }
+}
+
+// Generate trees at random positions
+const trees = []
+for (let i = 0; i < treeCount; i++) {
+    // Generate random position within spawn radius
+    const angle = Math.random() * Math.PI * 2
+    const distance = Math.random() * treeSpawnRadius
+    const x = Math.cos(angle) * distance
+    const z = Math.sin(angle) * distance
+    
+    // Check if position is too close to origin (player spawn) or existing obstacle
+    const minDistanceFromOrigin = 3
+    const minDistanceFromObstacle = 2
+    const distanceFromOrigin = Math.sqrt(x * x + z * z)
+    const distanceFromObstacle = Math.sqrt(
+        Math.pow(x - obstacleBody.position.x, 2) + 
+        Math.pow(z - obstacleBody.position.z, 2)
+    )
+    
+    if (distanceFromOrigin < minDistanceFromOrigin || distanceFromObstacle < minDistanceFromObstacle) {
+        // Try again with a new position
+        i--
+        continue
+    }
+    
+    const { treeGroup, treeBody } = createTree(x, z)
+    scene.add(treeGroup)
+    trees.push({ treeGroup, treeBody })
+}
 
 // Player physics
 const playerWidth = 0.3;
 const playerHeight = 0.78;
 const playerDepth = 1.5;
 const boxShape = new CANNON.Box(new CANNON.Vec3(playerWidth, playerHeight, playerDepth));
-const playerBody = new CANNON.Body({ mass: 999, shape: boxShape })
-playerBody.position.set(0, playerHeight, 0) // m
+const playerBody = new CANNON.Body({ mass: 99999, shape: boxShape })
+playerBody.position.set(0, playerHeight + 0.5, 0) // m
 world.addBody(playerBody)
 
 // Player mesh is the Fox
