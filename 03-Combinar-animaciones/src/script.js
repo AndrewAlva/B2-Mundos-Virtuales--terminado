@@ -28,12 +28,6 @@ gltfLoader.setDRACOLoader(dracoLoader)
 let mixer = null
 let actionIdle = null
 let actionRun = null
-const keysPressed = {
-    ArrowUp: false,
-    ArrowDown: false,
-    ArrowLeft: false,
-    ArrowRight: false
-}
 
 gltfLoader.load(
     '/models/Fox/glTF/Fox.gltf',
@@ -195,7 +189,6 @@ window.addEventListener('keyup', (event) => {
  */
 const clock = new THREE.Clock()
 let previousTime = 0
-const transitionSpeed = 5 // Speed of interpolation (higher = faster transition)
 
 const tick = () =>
 {
@@ -204,8 +197,7 @@ const tick = () =>
     previousTime = elapsedTime
 
     // Model animation
-    if(mixer && actionIdle && actionRun)
-    {
+    if (mixer && actionIdle && actionRun) {
         mixer.update(deltaTime)
         
         // Check if any arrow key is pressed
